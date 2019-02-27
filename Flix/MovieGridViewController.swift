@@ -1,25 +1,36 @@
 //
-//  ViewController.swift
+//  MovieGridViewController.swift
 //  Flix
 //
-//  Created by Sheng Liu on 2/18/19.
+//  Created by Sheng Liu on 2/24/19.
 //  Copyright © 2019 Sheng Liu. All rights reserved.
 //
 
 import UIKit
 import AlamofireImage
 
-class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class MovieGridViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource{
 
-    @IBOutlet weak var tableView: UITableView!
-    var movies = [[String : Any]]()
+    @IBOutlet weak var collectionView: UICollectionView!
+    
+    var movies = [[String:Any]]()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+
+        collectionView.delegate = self
+        collectionView.dataSource = self
         
-        tableView.delegate = self
-        tableView.dataSource = self
-        let url = URL(string: "https://api.themoviedb.org/3/movie/now_playing?api_key=a07e22bc18f5cb106bfe4cc1f83ad8ed")!
+        let layout = collectionView.collectionViewLayout as! UICollectionViewFlowLayout
+        
+        layout.minimumLineSpacing = 4
+        layout.minimumInteritemSpacing = 2
+        
+        let width = ((view.frame.size.width - layout.minimumInteritemSpacing * 2 ) / 2 )
+        
+        layout.itemSize = CGSize(width: width, height: width * 3 / 2)
+        
+        let url = URL(string: "https://api.themoviedb.org/3/movie/297762/similar?api_key=a07e22bc18f5cb106bfe4cc1f83ad8ed")!
         let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
         let session = URLSession(configuration: .default, delegate: nil, delegateQueue: OperationQueue.main)
         let task = session.dataTask(with: request) { (data, response, error) in
@@ -34,40 +45,35 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                 // TODO: Store the movies in a property to use elsewhere
                 self.movies = dataDictionary["results"] as! [[String:Any]]
                 
-                
-                // TODO: Reload your table view data
-                self.tableView.reloadData()
+
+                self.collectionView.reloadData()
+        // Do any additional setup after loading the view.
             }
+        
         }
         task.resume()
     }
     
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
         return movies.count
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "MovieCell") as! MovieCell
-        //If another cell is off screen, give me recycle cell. Otherwise create a new one...
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MovieGridCell", for: indexPath) as! MovieGridCell
+        let movie = movies[indexPath.item]
         
-        let movie = movies[indexPath.row]
-        let title = movie["title"] as! String
-        let synosis = movie["overview"] as! String
         let base_url = "https://image.tmdb.org/t/p/w185"
         let posterPath = movie["poster_path"] as! String
         let posterUrl = URL(string: base_url + posterPath)
         
-        
-        cell.title.text = title
-        cell.synosisLabel.text = synosis
-        
         cell.posterView.af_setImage(withURL: posterUrl!)
-        
         return cell
+        
+        
     }
-
+    
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         
         // get the new view controller using seque.destination.
@@ -75,15 +81,13 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         
         // we need to get a reference to our destination view controller
         
-        let cell = sender as! UITableViewCell
-        let indexPath = tableView.indexPath(for: cell)!
+        let cell = sender as! UICollectionViewCell
+        
+        let indexPath = collectionView.indexPath(for: cell)!
         let detailsViewController = segue.destination as! PhotoDetailsViewController
         
         let movie = movies[indexPath.row]
         
         detailsViewController.movie = movie
     }
-
-
 }
-
